@@ -53,7 +53,7 @@ class Training():
             model.load_state_dict(torch.load(parameter_path + "pnet_v{}".format(version-1)))
 
         loss_function = nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0)
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0, weight_decay=1e-4)
         losses = []
 
         for i in trange( int(len(win_log)*epochs / batchsize) ):
@@ -86,7 +86,7 @@ class Training():
             model.load_state_dict(torch.load(parameter_path + "vnet_v{}".format(version-1)))
 
         loss_function = nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0)
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0, weight_decay=1e-4)
         losses = []
 
         for i in trange( int((len(win_log) / batchsize)*epochs) ):
