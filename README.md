@@ -37,3 +37,5 @@ for v in range(iterations):
     )
     
 ```
+
+![image](https://user-images.githubusercontent.com/44772298/178162295-e4ac5bf0-3a6e-42a0-90da-1cfcf5001c40.png)
