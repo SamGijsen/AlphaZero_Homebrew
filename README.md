@@ -11,7 +11,7 @@ The algorithm leverages the following pieces:
 * `self_play.py`: Uses MCTS to run games and logs all activity for evaluation and training.
 * `TTT_env.py`: TicTacToe environment.
 
-The resulting `Self_Play` and `Training` classes allow for a recursive process: first, a batch of games is played, which afterwards serve as training data for the DNNs. If all goes well, the trained DNNs allow for better on the next batch of games, and so on. This play-training loop is implemented in the notebook. Here is a preview:
+The resulting `Self_Play` and `Training` classes allow for a recursive process: first, a batch of games is played, which afterwards serve as training data for the DNNs. If all goes well, the trained DNNs allow for better play on the next batch of games, and so on. This play-training loop is implemented in the notebook. Here is a preview:
 ```py
 
 for v in range(iterations):
