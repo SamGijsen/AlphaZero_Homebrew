@@ -24,9 +24,9 @@ class MCTS():
             vnet.load_state_dict(torch.load(self.parameter_path + "vnet_v{}".format(version-1)))
 
         # expand the root
-        p_policy = pnet(torch.tensor(self.state).float()).detach()
+        p_policy = pnet.predict(torch.tensor(self.state).float())[0]
         root = Node(self.state, self.turn)
-        root.expand(self.turn, prior=p_policy.clone())
+        root.expand(self.turn, prior=p_policy.copy())
 
         # do MCTS steps
         for run in range(self.runs):
@@ -42,8 +42,8 @@ class MCTS():
             env = TTT(node_t.state, turn=node_t.turn) 
             Q = env.check_terminality() # requires board-state to be from the right POV
             if Q == None: # not terminal
-                Q = vnet(torch.tensor(node_t.state).float()).detach().item()
-                p_policy = pnet(torch.tensor(node_t.state).float()).detach()
+                Q = vnet.predict(torch.tensor(node_t.state).float())
+                p_policy = pnet.predict(torch.tensor(node_t.state).float())[0]
                 node_t.expand(node_t.turn, prior=p_policy)
 
             # backup
@@ -60,7 +60,7 @@ class MCTS():
 
         for a in range(len(node.child)):
 
-            score = 4 * node.child[a].prior * math.sqrt(node.N) / (node.child[a].N+1)
+            score = 3 * node.child[a].prior * math.sqrt(node.N) / (node.child[a].N+1)
             if node.child[a].N > 0:
                 v = -node.child[a].value / node.child[a].N
             else:
@@ -96,15 +96,18 @@ class Node():
         # 1. generate child
         # 2. assign priors
         count = 0
-        for a in range(len(self.state)):
-            env = TTT(state=self.state.copy())
-            r = env.step(a, 1)
-            state = [-x for x in env.state.copy()] # flip the board
-            if r != -1: # check legality of move
-                self.child[count] = Node(state, turn*-1)
-                self.child[count].prior = prior[a].item()
-                count += 1
 
+        env = TTT(state=self.state.copy())
+        legal_moves = env.legal_moves(self.state)[0]
+        prior = prior[legal_moves]
+        prior /= np.sum(prior)
+
+        for i, a in enumerate(prior):
+            env = TTT(state=self.state.copy())
+            env.step(legal_moves[i], 1)
+            state = [-x for x in env.state.copy()] # flip the board
+            self.child[i] = Node(state, turn*-1)
+            self.child[i].prior = prior[i].item()
 
     def sample_action(self, temperature=1):
 

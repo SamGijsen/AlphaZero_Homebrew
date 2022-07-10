@@ -9,9 +9,9 @@ class ValueNet(torch.nn.Module):
     
     def __init__(self):
         super(ValueNet, self).__init__()
-        self.l1 = nn.Linear(9,32)
-        self.l2 = nn.Linear(32,9)
-        self.l3 = nn.Linear(9,1)
+        self.l1 = nn.Linear(9,64)
+        self.l2 = nn.Linear(64,64)
+        self.l3 = nn.Linear(64,1)
     
     def forward(self, x):
         x = self.l1(x)
@@ -19,7 +19,15 @@ class ValueNet(torch.nn.Module):
         x = self.l2(x)
         x = F.relu(x)
         x = self.l3(x)
-        return x
+        return torch.tanh(x)
+
+    def predict(self, state):
+        state = torch.FloatTensor(state)
+        self.eval()
+        with torch.no_grad():
+            p = self.forward(state)
+
+        return p.cpu().numpy()
     
 class PolicyNet(torch.nn.Module):
     
@@ -27,7 +35,7 @@ class PolicyNet(torch.nn.Module):
         super(PolicyNet, self).__init__()
         self.l1 = nn.Linear(9,32)
         self.l2 = nn.Linear(32,9)
-        self.sm = nn.LogSoftmax(dim=0)
+        self.sm = nn.Softmax(dim=1)
     
     def forward(self, x):
         x = self.l1(x)
@@ -35,6 +43,15 @@ class PolicyNet(torch.nn.Module):
         x = self.l2(x)
         x = self.sm(x) 
         return x
+
+    def predict(self, state):
+
+        self.eval()
+        state = state.view(1, len(state))
+        with torch.no_grad():
+            p = self.forward(state)
+
+        return p.cpu().numpy()
 
 class Training():
 
@@ -60,15 +77,14 @@ class Training():
             
             idx = np.random.randint(0, high=len(win_log), size=batchsize)
             x = torch.tensor(state_log[idx,:]).float().requires_grad_()
-            y = torch.tensor(np.log(mcts_log[idx,:]+1e-3)).float().requires_grad_()
+            y = torch.tensor(mcts_log[idx,:]).float().requires_grad_()
             x, y = x.to(self.device), y.to(self.device)
             
             optimizer.zero_grad()
             output = model(x)
             
-            loss = loss_function(output, y)
-            lossm = loss.mean()
-            losses.append(lossm.item())
+            loss = self.CrossEntropy(output, y).mean()
+            losses.append(loss.item())
             
             loss.backward()
             optimizer.step()
@@ -76,6 +92,10 @@ class Training():
         self.save_param_loss(version, parameter_path, model, losses, "pnet")
 
         return model, losses
+
+    def CrossEntropy(self, output, y):
+
+        return -(y * torch.log(output)).sum(dim=0)
 
 
     def train_value(self, state_log, mcts_log, win_log, version, parameter_path, lr=0.02, batchsize=32, epochs=10):
