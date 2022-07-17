@@ -24,7 +24,7 @@ class Self_Play():
         state_log = np.empty((0, 9), int)
         mcts_log = np.empty((0, 9), float)
         win_log = np.empty((0,1), int)
-        beginner_score = 0
+        random_scores = [0,0,0]
 
         for i in range(self.games):
 
@@ -68,16 +68,20 @@ class Self_Play():
 
             z = env.check_terminality()
 
-            if z != 0: # if not a draw
-                if (move % 2) == 0: # move is even number
-                    z = -1
-                else:
+            if z != 0: # not a draw
+                if z == 1 and (move % 2) == 1: # 'beginner' won
+                    random_scores[i%2] += 1 # index0 is random player win
+                elif z == -1 and (move % 2) == 0: # 'beginner' won
+                    random_scores[i%2] += 1
                     z = 1
+                elif z == -1 and (move % 2) == 1: # beginner lost
+                    random_scores[1-(i%2)] += 1
+                elif z == 1 and (move % 2) == 0: # beginner lost
+                    random_scores[1-(i%2)] += 1
+                    z = -1
+            else:
+                random_scores[2] += 1
 
-                if (i % 2) == 0: # random player wins
-                    beginner_score += z 
-                else:
-                    beginner_score -= z
 
             for t in range(move):
                 if t == 0: # code first state always as a'draw' ending - TODO: exclude from training
@@ -89,12 +93,36 @@ class Self_Play():
         if not random_opponent:
             self.save_game_data(version, self.parameter_path, state_log, mcts_log, win_log)
 
-        return state_log, mcts_log, win_log, beginner_score
+        return state_log, mcts_log, win_log, random_scores
 
 
     def save_game_data(self, version, parameter_path, state_log, mcts_log, win_log):
 
         fn = parameter_path + "game_data_v{}".format(version) + ".data"
+
+        # increase our training data by augmenting game states
+        # 90, 180, 270 degree rotations, vertical and horizontal mirrors
+
+        l = state_log.shape[0] # length by 9
+        
+        for i in range(l):
+
+            s = state_log[i,:].reshape(3,3)
+            state_log = np.append(state_log, np.rot90(s).reshape(1,-1), axis=0)
+            state_log = np.append(state_log, np.rot90(np.rot90(s)).reshape(1,-1), axis=0)
+            state_log = np.append(state_log, np.rot90(np.rot90(np.rot90(s))).reshape(1,-1), axis=0)
+            state_log = np.append(state_log, np.fliplr(s).reshape(1,-1), axis=0)
+            state_log = np.append(state_log, np.flipud(s).reshape(1,-1), axis=0)
+
+            s = mcts_log[i,:].reshape(3,3)
+            mcts_log = np.append(mcts_log, np.rot90(s).reshape(1,-1), axis=0)
+            mcts_log = np.append(mcts_log, np.rot90(np.rot90(s)).reshape(1,-1), axis=0)
+            mcts_log = np.append(mcts_log, np.rot90(np.rot90(np.rot90(s))).reshape(1,-1), axis=0)
+            mcts_log = np.append(mcts_log, np.fliplr(s).reshape(1,-1), axis=0)
+            mcts_log = np.append(mcts_log, np.flipud(s).reshape(1,-1), axis=0)
+
+            for j in range(5):
+                win_log = np.append(win_log, win_log[i].reshape(1,-1), axis=0)
 
         with open(fn, "wb") as f:
             pickle.dump([state_log, mcts_log, win_log], f)

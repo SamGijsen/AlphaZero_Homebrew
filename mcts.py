@@ -15,6 +15,8 @@ class MCTS():
         self.parameter_path = parameter_path
 
     def search(self, version):
+
+        torch.manual_seed(version)
         
         pnet = PolicyNet()
         vnet = ValueNet()
