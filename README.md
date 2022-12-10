@@ -1,6 +1,6 @@
 ### AlphaZero Homebrew
 
-Homebrew implementation of AlphaZero using NumPy/PyTorch for TicTacToe
+Homebrew implementation of AlphaZero using NumPy/PyTorch for TicTacToe. I've written a bit more about the implementation [here](https://samgijsen.github.io/general/2022/07/16/AlphaZeroHomebrew/).
 
 
 The algorithm leverages the following pieces:
